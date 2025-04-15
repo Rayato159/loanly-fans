@@ -1,0 +1,21 @@
+[toolchain]
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+loanly_fans = "7rCAqh5G1nFCYzrt3y8xnZDhtYFCX9V2rSkZu37sTRrR"
+
+[programs.devnet]
+loanly_fans = "7rCAqh5G1nFCYzrt3y8xnZDhtYFCX9V2rSkZu37sTRrR"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "Localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
