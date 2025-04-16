@@ -1,4 +1,3 @@
-#![allow(unexpected_cfgs)]
 use anchor_lang::prelude::*;
 
 #[account]
@@ -11,7 +10,7 @@ pub struct Contract {
     pub created_at: i64,
     pub due_at: i64,
     pub is_confirmed: bool,
-    pub is_paid: bool,
+    pub is_late_paid: bool,
     pub cashback_claimed: bool,
     pub bump: u8,
 }

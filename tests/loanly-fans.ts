@@ -22,6 +22,14 @@ describe("loanly-fans", () => {
     program.programId
   );
 
+  const [loanerHistoryPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("history"),
+      loaner.publicKey.toBuffer(),
+    ],
+    program.programId
+  )
+
   it("Airdrop", async () => {
     const connection = provider.connection;
 
@@ -61,27 +69,37 @@ describe("loanly-fans", () => {
     const dueAt = new anchor.BN(Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 30));
 
     await program.methods
-      .initialize(owner.publicKey, amount, dueAt)
+      .initializeContract(owner.publicKey, amount, dueAt)
       .accountsPartial({
         loaner: loaner.publicKey,
         contract: contractPda,
+        loanerHistory: loanerHistoryPda,
         systemProgram,
       })
       .signers([loaner])
       .rpc();
 
-    const account = await program.account.contract.fetch(contractPda);
+    const contract = await program.account.contract.fetch(contractPda);
+    const loaner_history = await program.account.loanerHistory.fetch(loanerHistoryPda);
 
-    assert.ok(account.owner.equals(owner.publicKey));
-    assert.ok(account.amount.eq(amount));
-    assert.ok(account.dueAt.eq(dueAt));
-    assert.ok(account.isConfirmed === false);
-    assert.ok(account.loaner.equals(loaner.publicKey));
+    assert.ok(contract.owner.equals(owner.publicKey));
+    assert.ok(contract.loaner.equals(loaner.publicKey));
+    assert.ok(contract.amount.eq(amount));
+    assert.ok(contract.dueAt.eq(dueAt));
+    assert.ok(contract.isConfirmed === false);
+    assert.ok(contract.isLatePaid === false);
+
+    assert.ok(loaner_history.loaner.equals(loaner.publicKey));
+    assert.ok(loaner_history.totalLoans.eq(new anchor.BN(0)));
+    assert.ok(loaner_history.latePaidLoans.eq(new anchor.BN(0)));
   });
 
   it("Confirm loan", async () => {
-    console.log("Loaner balance: ", await provider.connection.getBalance(loaner.publicKey));
-    console.log("Owner balance: ", await provider.connection.getBalance(owner.publicKey));
+    console.log(`
+      Before confirm loan:
+      Loaner balance: ${await provider.connection.getBalance(loaner.publicKey)}, 
+      Owner balance: ${await provider.connection.getBalance(owner.publicKey)}`
+    );
 
     await program.methods
       .loanConfirm()
@@ -94,18 +112,28 @@ describe("loanly-fans", () => {
       .signers([owner])
       .rpc();
 
-    const account = await program.account.contract.fetch(contractPda);
+    const contract = await program.account.contract.fetch(contractPda);
+    const loaner_history = await program.account.loanerHistory.fetch(loanerHistoryPda);
 
-    assert.ok(account.isConfirmed === true);
-    assert.ok(account.owner.equals(owner.publicKey));
+    assert.ok(contract.isConfirmed === true);
+    assert.ok(contract.owner.equals(owner.publicKey));
+    assert.ok(loaner_history.loaner.equals(loaner.publicKey));
+    assert.ok(loaner_history.totalLoans.eq(new anchor.BN(1)));
+    assert.ok(loaner_history.latePaidLoans.eq(new anchor.BN(0)));
 
-    console.log("Loaner balance: ", await provider.connection.getBalance(loaner.publicKey));
-    console.log("Owner balance: ", await provider.connection.getBalance(owner.publicKey));
+    console.log(`
+      After confirm loan:
+      Loaner balance: ${await provider.connection.getBalance(loaner.publicKey)}, 
+      Owner balance: ${await provider.connection.getBalance(owner.publicKey)}`
+    );
   });
 
-  it("Loan paid", async () => {
-    console.log("Loaner balance: ", await provider.connection.getBalance(loaner.publicKey));
-    console.log("Owner balance: ", await provider.connection.getBalance(owner.publicKey));
+  it("Loan paid in time", async () => {
+    console.log(`
+      Before loan paid:
+      Loaner balance: ${await provider.connection.getBalance(loaner.publicKey)}, 
+      Owner balance: ${await provider.connection.getBalance(owner.publicKey)}`
+    );
 
     await program.methods
       .loanPaid()
@@ -118,12 +146,20 @@ describe("loanly-fans", () => {
       .signers([loaner])
       .rpc();
 
-    const account = await program.account.contract.fetch(contractPda);
+    const contract = await program.account.contract.fetch(contractPda);
+    const loaner_history = await program.account.loanerHistory.fetch(loanerHistoryPda);
 
-    assert.ok(account.isPaid === true);
-    assert.ok(account.loaner.equals(loaner.publicKey));
+    assert.ok(contract.isLatePaid === false);
+    assert.ok(contract.loaner.equals(loaner.publicKey));
+    assert.ok(loaner_history.loaner.equals(loaner.publicKey));
+    assert.ok(loaner_history.totalLoans.eq(new anchor.BN(1)));
+    assert.ok(loaner_history.latePaidLoans.eq(new anchor.BN(0)));
 
-    console.log("Loaner balance: ", await provider.connection.getBalance(loaner.publicKey));
-    console.log("Owner balance: ", await provider.connection.getBalance(owner.publicKey));
+
+    console.log(`
+      After loan paid:
+      Loaner balance: ${await provider.connection.getBalance(loaner.publicKey)}, 
+      Owner balance: ${await provider.connection.getBalance(owner.publicKey)}`
+    );
   });
 });

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::states::contract::Contract;
+use crate::states::{contract::Contract, LoanerHistory};
 
 #[derive(Accounts)]
 pub struct LoanPaid<'info> {
@@ -12,6 +12,12 @@ pub struct LoanPaid<'info> {
         bump = contract.bump,
     )]
     pub contract: Account<'info, Contract>,
+    #[account(
+        mut,
+        seeds = [b"history", loaner.key().as_ref()],
+        bump,
+    )]
+    pub loaner_history: Account<'info, LoanerHistory>,
     #[account(mut)]
     pub owner: SystemAccount<'info>,
     pub system_program: Program<'info, System>,
