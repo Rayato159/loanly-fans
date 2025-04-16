@@ -48,6 +48,7 @@ pub mod loanly_fans {
             loaner_history.loaner = ctx.accounts.loaner.key();
             loaner_history.total_loans = 0;
             loaner_history.late_paid_loans = 0;
+            loaner_history.bump = ctx.bumps.loaner_history;
         }
 
         Ok(())

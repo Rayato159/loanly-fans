@@ -15,7 +15,7 @@ pub struct LoanPaid<'info> {
     #[account(
         mut,
         seeds = [b"history", loaner.key().as_ref()],
-        bump,
+        bump = loaner_history.bump,
     )]
     pub loaner_history: Account<'info, LoanerHistory>,
     #[account(mut)]
