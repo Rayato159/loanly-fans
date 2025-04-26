@@ -49,6 +49,13 @@ pub mod loanly_fans {
             loaner_history.total_loans = 0;
             loaner_history.late_paid_loans = 0;
             loaner_history.bump = ctx.bumps.loaner_history;
+        } else {
+            // Check loaner history if more than 3 late paid loans
+            // Then the loaner is not allowed to confirm the contract
+            require!(
+                loaner_history.late_paid_loans <= 3,
+                LoanConfirmError::BadLoaner
+            );
         }
 
         Ok(())
@@ -62,13 +69,6 @@ pub mod loanly_fans {
 
         // Check loaner match
         require_keys_eq!(signer, contract.owner);
-
-        // Check loaner history if more than 3 late paid loans
-        // Then the loaner is not allowed to confirm the contract
-        require!(
-            loaner_history.late_paid_loans <= 3,
-            LoanConfirmError::BadLoaner
-        );
 
         require!(
             owner_balance >= contract.amount,
